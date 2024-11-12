@@ -5,16 +5,23 @@ package proto;
 option go_package = "hand-in-5/proto/proto";
 
 
-message GrantTokenRequest {
-  string sender_id = 1;
-  int64 timestamp = 2;
+message BidRequest {
+  int64 amount = 1; 
 }
 
-message GrantTokenResponse {
-  bool success = 1;
-  int64 timestamp = 2;
+message BidResponse {
+  string response = 1;
+}
+
+message ResultRequest {
+
+}
+
+message ResultResponse {
+  string response = 1;
 }
 
 service Service {
-  rpc GrantToken (GrantTokenRequest) returns (GrantTokenResponse);
+  rpc PlaceBid (BidRequest) returns (BidResponse);
+  rpc AuctionResult (ResultRequest) returns (ResultResponse);
 }
