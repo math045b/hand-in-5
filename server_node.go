@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	proto "hand-in-5/proto"
+	"hand-in-5/proto"
 	"net"
 	"os"
 
