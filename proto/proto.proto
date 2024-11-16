@@ -7,7 +7,8 @@ option go_package = "hand-in-5/proto/proto";
 // protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative proto/proto.proto
 
 message BidRequest {
-  int64 amount = 1; 
+  string port = 1;
+  int64 amount = 2; 
 }
 
 message BidResponse {
@@ -22,7 +23,18 @@ message ResultResponse {
   string response = 1;
 }
 
+message NodeUpdate {
+  map<string, int64> auctionstate = 1; 
+  bool auctionOngoing = 2;
+  int64 time = 3;
+}
+
+message Empty {
+
+}
+
 service Service {
   rpc PlaceBid (BidRequest) returns (BidResponse);
   rpc AuctionResult (ResultRequest) returns (ResultResponse);
+  rpc UpdateNodes (NodeUpdate) returns (Empty);
 }
