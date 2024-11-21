@@ -45,6 +45,7 @@ func main() {
 				res, err := node.client.AuctionResult(context.Background(), req)
 				if err != nil {
 					println("Error getting auction result")
+					node.IncrementPort()
 				}
 				println(res.Response)
 			}
