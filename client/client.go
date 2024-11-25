@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	pb "hand-in-5/proto"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -40,35 +41,31 @@ func main() {
 
 		if len(splittext) < 2 {
 			if strings.TrimSpace(splittext[0]) == "Result" {
-				println("Getting acution result")
-				req := &pb.ResultRequest{}
-				res, err := node.client.AuctionResult(context.Background(), req)
+				log.Println("Getting acution result")
+				err := Request(node)
 				if err != nil {
-					println("Error getting auction result")
+					log.Println("Error getting auction result")
 					node.IncrementPort()
+					Request(node)
 				}
-				println(res.Response)
+
 			}
 		} else {
 			if splittext[0] == "Bid" {
 				num, _ := strconv.Atoi(strings.TrimSpace(splittext[1]))
-				if num < lastbet {
-					println("bet must be larger than last bet!")
+				if num <= lastbet {
+					log.Println("bet must be larger than last bet!")
 					continue
 				}
 				lastbet = num
-				bidReg := &pb.BidRequest{
-					Amount: int64(num),
-					Port:   clientId,
-				}
-				bidResponse, err := node.client.PlaceBid(context.Background(), bidReg)
+				err := Bid(node, num)
 				if err != nil {
-					println("port was unresponsive incrementing port num")
+					log.Println("port was unresponsive incrementing port num")
 					node.IncrementPort()
-
+					Bid(node, num)
 					continue
 				}
-				println(bidResponse.Response)
+
 			}
 		}
 	}
@@ -76,6 +73,30 @@ func main() {
 
 func (n *Client) IncrementPort() {
 	n.StartClient()
+}
+
+func Bid(node *Client, num int) error {
+	bidReg := &pb.BidRequest{
+		Amount: int64(num),
+		Port:   node.ID,
+	}
+	bidResponse, err := node.client.PlaceBid(context.Background(), bidReg)
+	if err != nil {
+		return err
+	}
+	log.Println(bidResponse.Response)
+	return err
+
+}
+
+func Request(node *Client) error {
+	req := &pb.ResultRequest{}
+	res, err := node.client.AuctionResult(context.Background(), req)
+	if err != nil {
+		return err
+	}
+	log.Println(res.Response)
+	return err
 }
 
 type Client struct {
