@@ -19,6 +19,10 @@ message ResultRequest {
 
 }
 
+message PortMessage {
+  string port = 1; 
+}
+
 message ResultResponse {
   string response = 1;
 }
@@ -37,4 +41,5 @@ service Service {
   rpc PlaceBid (BidRequest) returns (BidResponse);
   rpc AuctionResult (ResultRequest) returns (ResultResponse);
   rpc UpdateNodes (NodeUpdate) returns (Empty);
+  rpc CheckPulse (Empty) returns (Empty);
 }
