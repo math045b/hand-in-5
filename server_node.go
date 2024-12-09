@@ -39,8 +39,40 @@ func main() {
 		fmt.Printf("Server port: %s, clientport: %s \n", os.Args[1], os.Args[2])
 		node.StartClient(os.Args[2])
 	}
-	go RunAuction()
-	node.StartServer()
+
+	if node.port == "5050" {
+		go RunAuction()
+	} else {
+		node.WatchLeaderPulse()
+	}
+
+	go node.StartServer()
+}
+
+func (s *ServerNode) CheckPulse(context context.Context, message *proto.Empty) (*proto.Empty, error) {
+	reply := &proto.Empty{}
+	return reply, nil
+}
+
+func (s *ServerNode) SetLeader() {
+	s.port = "5050"
+	go s.StartServer()
+	/*else {
+		log.Printf("Node previously on port: %s is the new leader.\n", port)
+		go s.WatchLeaderPulse()
+	}*/
+}
+
+func (s *ServerNode) WatchLeaderPulse() {
+	for s.port != "5050" {
+		_, err := s.nextNode.CheckPulse(context.Background(), &proto.Empty{})
+		if err != nil {
+			log.Printf("Node on port: %s detected a leader crash\n", s.port)
+			s.SetLeader()
+			return
+		}
+		time.Sleep(2000 * time.Millisecond / 2)
+	}
 }
 
 func RunAuction() {
@@ -84,16 +116,16 @@ func (n *ServerNode) UpdateNodes(ctx context.Context, data *proto.NodeUpdate) (*
 	startTime = time.Unix(data.Time, 0)
 
 	winner = AssertWinner()
+	/*
+		state := &proto.NodeUpdate{
+			Auctionstate:   n.action,
+			AuctionOngoing: isRunning,
+			Time:           data.Time,
+		}
 
-	state := &proto.NodeUpdate{
-		Auctionstate:   n.action,
-		AuctionOngoing: isRunning,
-		Time:           data.Time,
-	}
-
-	if n.nextNode != nil {
-		n.nextNode.UpdateNodes(context.Background(), state)
-	}
+		if n.nextNode != nil {
+			n.nextNode.UpdateNodes(context.Background(), state)
+		}*/
 
 	return &proto.Empty{}, nil
 }
@@ -151,10 +183,8 @@ func (n *ServerNode) AuctionResult(context context.Context, request *proto.Resul
 
 func (n *ServerNode) StartClient(port string) error {
 	println("client is starting brrr")
-	address := "localhost:" + port
 	fmt.Printf("%s is trying to create a client on", n.port)
-	fmt.Println(address)
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to connect to next node on port %s: %w", port, err)
 	}
