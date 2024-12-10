@@ -1,0 +1,62 @@
+Leader (port 5050)
+2024/12/10 09:33:04 now listening on 5050
+2024/12/10 09:33:14 Port: 5050 - Connected to next node on port 5051
+2024/12/10 09:33:14 Node: 5050 has made connection to 5051
+2024/12/10 09:33:26 The auction was started
+2024/12/10 09:33:29 Auction result was requested
+2024/12/10 09:33:34 Got bid
+2024/12/10 09:33:37 Got bid
+2024/12/10 09:33:41 Auction result was requested
+
+Second Node (port 5051)
+2024/12/10 09:33:14 Port: 5051 - Connected to next node on port 5050
+2024/12/10 09:33:14 now listening on 5051
+2024/12/10 09:33:26 Port: 5051 Received update
+2024/12/10 09:33:26 Port: 5051 Received update
+2024/12/10 09:33:34 Port: 5051 Received update
+2024/12/10 09:33:37 Port: 5051 Received update
+2024/12/10 09:33:47 Node on port: 5051 detected a leader crash
+2024/12/10 09:33:47 I am becoming leader: 5051
+2024/12/10 09:33:47 now listening on 5050
+2024/12/10 09:33:49 Got bid
+2024/12/10 09:33:49 Port: 5050 Received update
+2024/12/10 09:33:52 Got bid
+2024/12/10 09:33:52 Port: 5050 Received update
+2024/12/10 09:33:56 start:  2024-12-10 09:33:26 +0100 CET
+2024/12/10 09:33:56 The auction was ended
+2024/12/10 09:33:56 Port: 5050 Received update
+2024/12/10 09:34:01 Auction result was requested
+2024/12/10 09:34:04 Auction result was requested
+
+
+Client 1 (first)
+You can input the following:
+Bid {amount}
+Result
+Bid 10
+2024/12/10 09:33:26 first: You have joined the auction with your bid of 10
+Result
+2024/12/10 09:33:41 Getting auction result
+2024/12/10 09:33:41 Auction is ongoing the current max bid is: 20
+Bid 10
+2024/12/10 09:33:49 Bid must be larger than current leader: 20
+Bid 60
+2024/12/10 09:33:52 Bid Received! New Bid: 60
+Result
+2024/12/10 09:34:04 Getting auction result
+2024/12/10 09:34:04 Auction is over the winner was first
+
+Client 2 (second)
+You can input the following:
+Bid {amount}
+Result
+Result
+2024/12/10 09:33:29 Getting auction result
+2024/12/10 09:33:29 Auction is ongoing the current max bid is: 10
+Bid 9
+2024/12/10 09:33:34 Bid must be larger than current leader: 10
+Bid 20
+2024/12/10 09:33:37 Bid Received! New Bid: 20
+Result
+2024/12/10 09:34:01 Getting auction result
+2024/12/10 09:34:01 Auction is over the winner was first
