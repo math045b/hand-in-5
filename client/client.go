@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"fmt"
 	pb "hand-in-5/proto"
 	"log"
 	"os"
@@ -83,7 +82,7 @@ func (n *Client) StartClient() {
 	address := "localhost: 5050"
 	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		fmt.Errorf("failed to connect to node %s: %v", n.ID, err)
+		log.Fatalf("failed to connect to node %s: %v", n.ID, err)
 	}
 	n.client = pb.NewServiceClient(conn)
 }
