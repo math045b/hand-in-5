@@ -28,25 +28,29 @@ var winner string
 func main() {
 	// starting node
 
-	fmt.Printf("Starting server node with port %s and client port %s\n", os.Args[1], os.Args[2])
-	clientPort := os.Args[1]
+	//fmt.Printf("Starting server node with port %s and client port %s\n", os.Args[1], os.Args[2])
+	var Port string
+	if len(os.Args) < 2 {
+		Port = "5050"
+	} else {
+		Port = os.Args[1]
+	}
+
 	isRunning = false
 	winner = ""
 	node = &ServerNode{
-		port: clientPort,
+		port: Port,
 	}
-	if len(os.Args) > 2 {
-		fmt.Printf("Server port: %s, clientport: %s \n", os.Args[1], os.Args[2])
-		node.StartClient(os.Args[2])
+	if len(os.Args) > 1 {
+		node.StartClient("5050")
+		joinmessage := &proto.JoinMessage{Port: node.port}
+		node.nextNode.JoinLeader(context.Background(), joinmessage)
 	}
-
-	if node.port == "5050" {
-		go RunAuction()
-	} else {
-		node.WatchLeaderPulse()
+	go RunAuction()
+	if node.port != "5050" {
+		go node.WatchLeaderPulse()
 	}
-
-	go node.StartServer()
+	node.StartServer()
 }
 
 func (s *ServerNode) CheckPulse(context context.Context, message *proto.Empty) (*proto.Empty, error) {
@@ -54,24 +58,28 @@ func (s *ServerNode) CheckPulse(context context.Context, message *proto.Empty) (
 	return reply, nil
 }
 
-func (s *ServerNode) SetLeader() {
-	s.port = "5050"
-	go s.StartServer()
-	/*else {
-		log.Printf("Node previously on port: %s is the new leader.\n", port)
-		go s.WatchLeaderPulse()
-	}*/
+func (n *ServerNode) JoinLeader(context context.Context, message *proto.JoinMessage) (*proto.Empty, error) {
+	newport := message.Port
+	n.StartClient(newport)
+	log.Printf("Node: %s has made connection to %s\n", n.port, newport)
+	return &proto.Empty{}, nil
 }
 
-func (s *ServerNode) WatchLeaderPulse() {
-	for s.port != "5050" {
-		_, err := s.nextNode.CheckPulse(context.Background(), &proto.Empty{})
+func (n *ServerNode) SetLeader() {
+	log.Printf("I am becoming leader: %s", n.port)
+	n.port = "5050"
+	go n.StartServer()
+}
+
+func (n *ServerNode) WatchLeaderPulse() {
+	for n.port != "5050" {
+		_, err := n.nextNode.CheckPulse(context.Background(), &proto.Empty{})
 		if err != nil {
-			log.Printf("Node on port: %s detected a leader crash\n", s.port)
-			s.SetLeader()
+			log.Printf("Node on port: %s detected a leader crash\n", n.port)
+			n.SetLeader()
 			return
 		}
-		time.Sleep(2000 * time.Millisecond / 2)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -79,7 +87,7 @@ func RunAuction() {
 	for {
 		if isRunning {
 			if time.Since(startTime) > (30 * time.Second) {
-				fmt.Println("start: ", startTime.String())
+				log.Println("start: ", startTime.String())
 				log.Println("The auction was ended")
 				isRunning = false
 				winner = AssertWinner()
@@ -109,23 +117,12 @@ func AssertWinner() (max string) {
 }
 
 func (n *ServerNode) UpdateNodes(ctx context.Context, data *proto.NodeUpdate) (*proto.Empty, error) {
-	fmt.Printf("Port: %s Received update\n", n.port)
+	log.Printf("Port: %s Received update\n", n.port)
 	// updating node auction map
 	n.action = data.Auctionstate
 	isRunning = data.AuctionOngoing
 	startTime = time.Unix(data.Time, 0)
-
 	winner = AssertWinner()
-	/*
-		state := &proto.NodeUpdate{
-			Auctionstate:   n.action,
-			AuctionOngoing: isRunning,
-			Time:           data.Time,
-		}
-
-		if n.nextNode != nil {
-			n.nextNode.UpdateNodes(context.Background(), state)
-		}*/
 
 	return &proto.Empty{}, nil
 }
@@ -133,12 +130,12 @@ func (n *ServerNode) UpdateNodes(ctx context.Context, data *proto.NodeUpdate) (*
 func (n *ServerNode) startTimer(t time.Time) {
 	log.Println("The auction was started")
 	startTime = t
+	isRunning = true
 	update := &proto.NodeUpdate{
 		Auctionstate:   n.action,
 		AuctionOngoing: isRunning,
 		Time:           t.Unix(),
 	}
-	isRunning = true
 	n.nextNode.UpdateNodes(context.Background(), update)
 }
 
@@ -152,19 +149,26 @@ func (n *ServerNode) PlaceBid(ctx context.Context, request *proto.BidRequest) (*
 	} else if n.action != nil && !isRunning {
 		response = &proto.BidResponse{Response: "The auction has ended"}
 	} else {
-		n.action[request.Port] = request.Amount
-		response = &proto.BidResponse{Response: fmt.Sprintf("Bid Received! New Bid: %d", n.action[request.Port])}
-		update := &proto.NodeUpdate{Auctionstate: n.action, AuctionOngoing: isRunning, Time: startTime.Unix()}
-		if n.nextNode != nil {
-			_, err := n.nextNode.UpdateNodes(context.Background(), update)
-			if err != nil {
-				fmt.Printf("Failed to forward update to next node: %v\n", err)
-			}
+		leader := AssertWinner()
+		log.Println("Got bid")
+		if request.Amount < n.action[leader] {
+			response = &proto.BidResponse{Response: fmt.Sprintf("Bid must be larger than current leader: %d", n.action[leader])}
 		} else {
-			fmt.Printf("Port: %s - No next node to forward update to\n", n.port)
+			n.action[request.Port] = request.Amount
+			response = &proto.BidResponse{Response: fmt.Sprintf("Bid Received! New Bid: %d", n.action[request.Port])}
 		}
+
 	}
 
+	update := &proto.NodeUpdate{Auctionstate: n.action, AuctionOngoing: isRunning, Time: startTime.Unix()}
+	if n.nextNode != nil {
+		_, err := n.nextNode.UpdateNodes(context.Background(), update)
+		if err != nil {
+			fmt.Printf("Failed to forward update to next node: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Port: %s - No next node to forward update to\n", n.port)
+	}
 	return response, nil
 }
 
@@ -182,14 +186,12 @@ func (n *ServerNode) AuctionResult(context context.Context, request *proto.Resul
 }
 
 func (n *ServerNode) StartClient(port string) error {
-	println("client is starting brrr")
-	fmt.Printf("%s is trying to create a client on", n.port)
 	conn, err := grpc.NewClient("localhost:"+port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to connect to next node on port %s: %w", port, err)
 	}
 	n.nextNode = proto.NewServiceClient(conn)
-	fmt.Printf("Port: %s - Connected to next node on port %s\n", n.port, port)
+	log.Printf("Port: %s - Connected to next node on port %s\n", n.port, port)
 	return nil
 }
 
@@ -202,7 +204,7 @@ func (n *ServerNode) StartServer() {
 	}
 
 	proto.RegisterServiceServer(server, n)
-
+	log.Printf("now listening on %s\n", n.port)
 	err = server.Serve(listener)
 	if err != nil {
 		fmt.Println("Server could not be served")
