@@ -33,6 +33,10 @@ message NodeUpdate {
   int64 time = 3;
 }
 
+message JoinMessage {
+  string port = 1;
+}
+
 message Empty {
 
 }
@@ -42,4 +46,5 @@ service Service {
   rpc AuctionResult (ResultRequest) returns (ResultResponse);
   rpc UpdateNodes (NodeUpdate) returns (Empty);
   rpc CheckPulse (Empty) returns (Empty);
+  rpc JoinLeader (JoinMessage) returns (Empty);
 }

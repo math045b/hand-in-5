@@ -23,6 +23,7 @@ const (
 	Service_AuctionResult_FullMethodName = "/proto.Service/AuctionResult"
 	Service_UpdateNodes_FullMethodName   = "/proto.Service/UpdateNodes"
 	Service_CheckPulse_FullMethodName    = "/proto.Service/CheckPulse"
+	Service_JoinLeader_FullMethodName    = "/proto.Service/JoinLeader"
 )
 
 // ServiceClient is the client API for Service service.
@@ -33,6 +34,7 @@ type ServiceClient interface {
 	AuctionResult(ctx context.Context, in *ResultRequest, opts ...grpc.CallOption) (*ResultResponse, error)
 	UpdateNodes(ctx context.Context, in *NodeUpdate, opts ...grpc.CallOption) (*Empty, error)
 	CheckPulse(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	JoinLeader(ctx context.Context, in *JoinMessage, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type serviceClient struct {
@@ -83,6 +85,16 @@ func (c *serviceClient) CheckPulse(ctx context.Context, in *Empty, opts ...grpc.
 	return out, nil
 }
 
+func (c *serviceClient) JoinLeader(ctx context.Context, in *JoinMessage, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, Service_JoinLeader_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServiceServer is the server API for Service service.
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type ServiceServer interface {
 	AuctionResult(context.Context, *ResultRequest) (*ResultResponse, error)
 	UpdateNodes(context.Context, *NodeUpdate) (*Empty, error)
 	CheckPulse(context.Context, *Empty) (*Empty, error)
+	JoinLeader(context.Context, *JoinMessage) (*Empty, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedServiceServer) UpdateNodes(context.Context, *NodeUpdate) (*Em
 }
 func (UnimplementedServiceServer) CheckPulse(context.Context, *Empty) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckPulse not implemented")
+}
+func (UnimplementedServiceServer) JoinLeader(context.Context, *JoinMessage) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinLeader not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 func (UnimplementedServiceServer) testEmbeddedByValue()                 {}
@@ -206,6 +222,24 @@ func _Service_CheckPulse_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Service_JoinLeader_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).JoinLeader(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Service_JoinLeader_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).JoinLeader(ctx, req.(*JoinMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Service_ServiceDesc is the grpc.ServiceDesc for Service service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckPulse",
 			Handler:    _Service_CheckPulse_Handler,
+		},
+		{
+			MethodName: "JoinLeader",
+			Handler:    _Service_JoinLeader_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
