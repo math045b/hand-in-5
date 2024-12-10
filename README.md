@@ -1,6 +1,6 @@
 ## How to run
 
-The following should be done in seperate terminal
+The following should be done in seperate terminals
 
 Start the leader node on 5050
 ```sh
